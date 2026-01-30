@@ -1,6 +1,6 @@
 // Database types based on supabase-schema.sql
 
-export type RoleType = 'FDE' | 'AI-SE' | 'AI-PM' | 'AI-DA' | 'AI-DS' | 'AI-SEC' | 'AI-FE' | 'AI-DX';
+export type RoleType = 'FDE' | 'AI-SE' | 'AI-PM' | 'AI-DA' | 'AI-DS' | 'AI-SEC' | 'AI-FE';
 
 export type TeamType = 'Alpha' | 'Beta' | 'Gamma' | 'Delta' | 'Epsilon' | 'Zeta' | 'Eta' | 'Theta';
 
@@ -44,9 +44,12 @@ export interface Assignment {
   type: AssignmentType;
   title: string;
   description: string | null;
+  situation: string | null;
+  target_roles: string[] | null; // NULL = common, array = role-specific
   max_points: number;
   due_at: string | null;
   folder_name: string;
+  week: number;
   created_at: string;
 }
 
@@ -173,7 +176,6 @@ export const ROLE_COLORS: Record<RoleType, string> = {
   'AI-DS': 'bg-pink-500',
   'AI-SEC': 'bg-red-500',
   'AI-FE': 'bg-cyan-500',
-  'AI-DX': 'bg-yellow-500',
 };
 
 // Team colors for UI

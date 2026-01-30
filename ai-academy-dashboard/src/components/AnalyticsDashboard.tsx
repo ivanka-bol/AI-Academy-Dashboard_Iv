@@ -103,6 +103,14 @@ const TEAM_COLORS: Record<string, string> = {
 
 const PIE_COLORS = ['#0062FF', '#22c55e', '#f97316', '#ef4444', '#a855f7'];
 
+const WEEKS = [
+  { week: 0, label: 'All Weeks', days: Array.from({ length: 25 }, (_, i) => i + 1) },
+  { week: 1, label: 'Week 1', sublabel: 'Foundations', days: [1, 2, 3, 4, 5] },
+  { week: 2, label: 'Week 2', sublabel: 'Deep Dive', days: [6, 7, 8, 9, 10] },
+  { week: 4, label: 'Week 4', sublabel: 'Team Build', days: [11, 12, 13, 14, 15] },
+  { week: 5, label: 'Week 5', sublabel: 'Polish', days: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25] },
+];
+
 export function AnalyticsDashboard({
   participants,
   assignments,
@@ -112,6 +120,7 @@ export function AnalyticsDashboard({
   activityLog,
 }: AnalyticsDashboardProps) {
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
+  const [selectedWeek, setSelectedWeek] = useState<string>('0');
 
   // Calculate key metrics
   const totalParticipants = participants.length;
@@ -162,24 +171,31 @@ export function AnalyticsDashboard({
     }));
   }, [teamProgress]);
 
-  // Assignment completion rates
-  const assignmentStats = useMemo(() => {
-    return assignments.map((a) => {
-      const subs = submissions.filter((s) => s.assignment_id === a.id);
-      const avgRating = subs.filter((s) => s.mentor_rating).reduce((sum, s) => sum + (s.mentor_rating || 0), 0) / (subs.filter((s) => s.mentor_rating).length || 1);
-      const completionRate = Math.round((subs.length / totalParticipants) * 100);
+  // Get current week config
+  const currentWeek = WEEKS.find(w => w.week.toString() === selectedWeek) || WEEKS[0];
 
-      return {
-        id: a.id,
-        name: `Day ${a.day}: ${a.title}`,
-        type: a.type,
-        submissions: subs.length,
-        completionRate,
-        avgRating: Math.round(avgRating * 10) / 10 || null,
-        maxPoints: a.max_points,
-      };
-    });
-  }, [assignments, submissions, totalParticipants]);
+  // Assignment completion rates - filtered by week
+  const assignmentStats = useMemo(() => {
+    return assignments
+      .filter(a => currentWeek.days.includes(a.day))
+      .map((a) => {
+        const subs = submissions.filter((s) => s.assignment_id === a.id);
+        const avgRating = subs.filter((s) => s.mentor_rating).reduce((sum, s) => sum + (s.mentor_rating || 0), 0) / (subs.filter((s) => s.mentor_rating).length || 1);
+        const completionRate = Math.round((subs.length / totalParticipants) * 100);
+
+        return {
+          id: a.id,
+          day: a.day,
+          name: `Day ${a.day}: ${a.title}`,
+          type: a.type,
+          submissions: subs.length,
+          completionRate,
+          avgRating: Math.round(avgRating * 10) / 10 || null,
+          maxPoints: a.max_points,
+          week: a.day <= 5 ? 1 : a.day <= 10 ? 2 : a.day <= 15 ? 4 : 5,
+        };
+      });
+  }, [assignments, submissions, totalParticipants, currentWeek]);
 
   // Problem assignments (low completion or rating)
   const problemAssignments = assignmentStats
@@ -534,25 +550,41 @@ export function AnalyticsDashboard({
         {/* Assignments Tab */}
         <TabsContent value="assignments" className="space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Assignment Statistics</CardTitle>
+              <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select week" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WEEKS.map((week) => (
+                    <SelectItem key={week.week} value={week.week.toString()}>
+                      {week.label}{week.sublabel ? `: ${week.sublabel}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Assignment</TableHead>
-                    <TableHead>Typ</TableHead>
+                    <TableHead>Week</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead className="text-right">Submissions</TableHead>
                     <TableHead className="text-right">Completion</TableHead>
                     <TableHead className="text-right">Avg Rating</TableHead>
-                    <TableHead className="text-right">Max Body</TableHead>
+                    <TableHead className="text-right">Max Points</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {assignmentStats.map((a) => (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">Week {a.week}</Badge>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {a.type === 'in_class' ? 'In-Class' : 'Homework'}

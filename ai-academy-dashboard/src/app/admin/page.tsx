@@ -59,8 +59,14 @@ import { toast } from 'sonner';
 import type { SubmissionWithDetails, TeamType, RoleType, SubmissionStatus } from '@/lib/types';
 
 const TEAMS: TeamType[] = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta'];
-const ROLES: RoleType[] = ['FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE', 'AI-DX'];
-const DAYS = [1, 2, 3, 4, 5];
+const ROLES: RoleType[] = ['FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE'];
+const WEEKS = [
+  { week: 0, label: 'All Weeks', days: Array.from({ length: 25 }, (_, i) => i + 1) },
+  { week: 1, label: 'Week 1', days: [1, 2, 3, 4, 5] },
+  { week: 2, label: 'Week 2', days: [6, 7, 8, 9, 10] },
+  { week: 4, label: 'Week 4', days: [11, 12, 13, 14, 15] },
+  { week: 5, label: 'Week 5', days: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25] },
+];
 const STATUSES: { value: SubmissionStatus; label: string }[] = [
   { value: 'submitted', label: 'Submitted' },
   { value: 'reviewed', label: 'Reviewed' },
@@ -79,9 +85,11 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [teamFilter, setTeamFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [dayFilter, setDayFilter] = useState<string>('all');
+  const [weekFilter, setWeekFilter] = useState<string>('0');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
+
+  const currentWeek = WEEKS.find(w => w.week.toString() === weekFilter) || WEEKS[0];
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -129,11 +137,11 @@ export default function AdminPage() {
     setSearchQuery('');
     setTeamFilter('all');
     setRoleFilter('all');
-    setDayFilter('all');
+    setWeekFilter('0');
     setStatusFilter('all');
   };
 
-  const hasActiveFilters = searchQuery || teamFilter !== 'all' || roleFilter !== 'all' || dayFilter !== 'all' || statusFilter !== 'all';
+  const hasActiveFilters = searchQuery || teamFilter !== 'all' || roleFilter !== 'all' || weekFilter !== '0' || statusFilter !== 'all';
 
   // Filter submissions
   const filteredSubmissions = useMemo(() => {
@@ -164,9 +172,9 @@ export default function AdminPage() {
       filtered = filtered.filter((s) => s.participants?.role === roleFilter);
     }
 
-    // Day filter
-    if (dayFilter !== 'all') {
-      filtered = filtered.filter((s) => s.assignments?.day === parseInt(dayFilter));
+    // Week filter
+    if (weekFilter !== '0') {
+      filtered = filtered.filter((s) => s.assignments?.day && currentWeek.days.includes(s.assignments.day));
     }
 
     // Status filter (only for "all" tab)
@@ -175,12 +183,12 @@ export default function AdminPage() {
     }
 
     return filtered;
-  }, [allSubmissions, activeTab, searchQuery, teamFilter, roleFilter, dayFilter, statusFilter]);
+  }, [allSubmissions, activeTab, searchQuery, teamFilter, roleFilter, weekFilter, currentWeek, statusFilter]);
 
   // Clear selection when filters change
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [activeTab, searchQuery, teamFilter, roleFilter, dayFilter, statusFilter]);
+  }, [activeTab, searchQuery, teamFilter, roleFilter, weekFilter, statusFilter]);
 
   // Stats
   const pendingCount = allSubmissions.filter((s) => s.status === 'submitted' && !s.mentor_rating).length;
@@ -478,16 +486,15 @@ export default function AdminPage() {
                 </SelectContent>
               </Select>
 
-              {/* Day Filter */}
-              <Select value={dayFilter} onValueChange={setDayFilter}>
+              {/* Week Filter */}
+              <Select value={weekFilter} onValueChange={setWeekFilter}>
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Day" />
+                  <SelectValue placeholder="Week" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Days</SelectItem>
-                  {DAYS.map((day) => (
-                    <SelectItem key={day} value={day.toString()}>
-                      Day {day}
+                  {WEEKS.map((week) => (
+                    <SelectItem key={week.week} value={week.week.toString()}>
+                      {week.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -534,8 +541,8 @@ export default function AdminPage() {
                 {roleFilter !== 'all' && (
                   <Badge variant="secondary">Role: {roleFilter}</Badge>
                 )}
-                {dayFilter !== 'all' && (
-                  <Badge variant="secondary">Day {dayFilter}</Badge>
+                {weekFilter !== '0' && (
+                  <Badge variant="secondary">{currentWeek.label}</Badge>
                 )}
                 {activeTab === 'all' && statusFilter !== 'all' && (
                   <Badge variant="secondary">

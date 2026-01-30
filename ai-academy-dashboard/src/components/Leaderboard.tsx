@@ -26,7 +26,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import type { LeaderboardView, RoleType, TeamType, StreamType } from '@/lib/types';
 
-const ROLES: RoleType[] = ['FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE', 'AI-DX'];
+const ROLES: RoleType[] = ['FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE'];
 const TEAMS: TeamType[] = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta'];
 const STREAMS: StreamType[] = ['Tech', 'Business'];
 

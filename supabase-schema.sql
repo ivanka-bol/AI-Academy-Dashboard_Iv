@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- =============================================
 
 CREATE TYPE role_type AS ENUM (
-    'FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE', 'AI-DX'
+    'FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE'
 );
 
 CREATE TYPE team_type AS ENUM (
@@ -45,15 +45,24 @@ CREATE TABLE participants (
 -- Assignments (predefined by mentors)
 CREATE TABLE assignments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    day INTEGER NOT NULL CHECK (day BETWEEN 1 AND 5),
+    day INTEGER NOT NULL CHECK (day BETWEEN 1 AND 25),
     type assignment_type NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
+    situation TEXT, -- context/challenge description
+    target_roles TEXT[] DEFAULT NULL, -- NULL = common, array = role-specific
     max_points INTEGER DEFAULT 15,
     due_at TIMESTAMPTZ,
-    folder_name TEXT NOT NULL, -- e.g., 'day-01-agent-foundations'
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(day, type)
+    folder_name TEXT NOT NULL,
+    week INTEGER GENERATED ALWAYS AS (
+        CASE
+            WHEN day <= 5 THEN 1
+            WHEN day <= 10 THEN 2
+            WHEN day <= 15 THEN 4
+            ELSE 5
+        END
+    ) STORED,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Submissions

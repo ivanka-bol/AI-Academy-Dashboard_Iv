@@ -37,19 +37,18 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import type { RoleType, TeamType, StreamType } from '@/lib/types';
 
-const ROLES: RoleType[] = ['FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE', 'AI-DX'];
+const ROLES: RoleType[] = ['FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE'];
 const TEAMS: TeamType[] = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta'];
 const STREAMS: StreamType[] = ['Tech', 'Business'];
 
 const ROLE_DESCRIPTIONS: Record<RoleType, string> = {
-  'FDE': 'Full-stack Developer Engineer',
+  'FDE': 'Forward Deployed Engineer',
   'AI-SE': 'AI Software Engineer',
   'AI-PM': 'AI Product Manager',
   'AI-DA': 'AI Data Analyst',
   'AI-DS': 'AI Data Scientist',
-  'AI-SEC': 'AI Security Engineer',
-  'AI-FE': 'AI Frontend Engineer',
-  'AI-DX': 'AI Developer Experience',
+  'AI-SEC': 'AI Security Consultant',
+  'AI-FE': 'AI Front-End Developer',
 };
 
 type Step = 'welcome' | 'github' | 'profile' | 'webhook' | 'complete';
@@ -254,7 +253,7 @@ export function OnboardingWizard({ initialStep = 'welcome', fromGitHub = false }
               <div className="grid grid-cols-3 gap-4 py-6">
                 <div className="text-center p-4 rounded-lg bg-muted/50">
                   <Target className="h-8 w-8 mx-auto mb-2 text-[#0062FF]" />
-                  <p className="font-medium">5 Days</p>
+                  <p className="font-medium">5 Weeks</p>
                   <p className="text-sm text-muted-foreground">Intensive training</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-muted/50">
@@ -264,7 +263,7 @@ export function OnboardingWizard({ initialStep = 'welcome', fromGitHub = false }
                 </div>
                 <div className="text-center p-4 rounded-lg bg-muted/50">
                   <Users className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                  <p className="font-medium">Teamwork</p>
+                  <p className="font-medium">Team Projects</p>
                   <p className="text-sm text-muted-foreground">Collaborate with others</p>
                 </div>
               </div>

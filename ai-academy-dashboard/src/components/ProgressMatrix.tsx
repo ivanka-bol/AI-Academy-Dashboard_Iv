@@ -27,7 +27,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid3X3, Download, CheckCircle, XCircle, FileText, Users } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Grid3X3, Download, CheckCircle, XCircle, FileText, Users, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import type {
@@ -46,9 +53,15 @@ interface ProgressMatrixProps {
   submissions: Pick<Submission, 'participant_id' | 'assignment_id' | 'status' | 'submitted_at'>[];
 }
 
-const ROLES: RoleType[] = ['FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE', 'AI-DX'];
-const DAYS = [1, 2, 3, 4, 5];
-const TYPES: AssignmentType[] = ['in_class', 'homework'];
+const ROLES: RoleType[] = ['FDE', 'AI-SE', 'AI-PM', 'AI-DA', 'AI-DS', 'AI-SEC', 'AI-FE'];
+
+// Organized by week for cleaner display
+const WEEKS = [
+  { week: 1, label: 'Week 1', sublabel: 'Foundations', days: [1, 2, 3, 4, 5], color: 'bg-blue-500' },
+  { week: 2, label: 'Week 2', sublabel: 'Deep Dive', days: [6, 7, 8, 9, 10], color: 'bg-green-500' },
+  { week: 4, label: 'Week 4', sublabel: 'Team Build', days: [11, 12, 13, 14, 15], color: 'bg-purple-500' },
+  { week: 5, label: 'Week 5', sublabel: 'Polish', days: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25], color: 'bg-orange-500' },
+];
 
 function getCompletionColor(pct: number): string {
   if (pct === 0) return 'bg-muted';
@@ -77,6 +90,9 @@ interface ParticipantWithSubmission extends Participant {
 
 export function ProgressMatrix({ data, participants, assignments, submissions }: ProgressMatrixProps) {
   const [drillDown, setDrillDown] = useState<DrillDownData | null>(null);
+  const [selectedWeek, setSelectedWeek] = useState<string>('1');
+
+  const currentWeek = WEEKS.find(w => w.week.toString() === selectedWeek) || WEEKS[0];
 
   // Create a lookup map for quick access
   const matrixMap = useMemo(() => {
@@ -88,12 +104,23 @@ export function ProgressMatrix({ data, participants, assignments, submissions }:
     return map;
   }, [data]);
 
-  // Create assignment lookup
+  // Create assignment lookup - now handles role-specific assignments
   const assignmentMap = useMemo(() => {
     const map = new Map<string, Assignment>();
     assignments.forEach((a) => {
-      const key = `${a.day}-${a.type}`;
-      map.set(key, a);
+      // For role-specific assignments, create keys for each target role
+      if (a.target_roles && a.target_roles.length > 0) {
+        a.target_roles.forEach(role => {
+          const key = `${a.day}-${a.type}-${role}`;
+          map.set(key, a);
+        });
+      } else {
+        // Common assignment - create key for all roles
+        ROLES.forEach(role => {
+          const key = `${a.day}-${a.type}-${role}`;
+          map.set(key, a);
+        });
+      }
     });
     return map;
   }, [assignments]);
@@ -113,8 +140,12 @@ export function ProgressMatrix({ data, participants, assignments, submissions }:
     return matrixMap.get(key);
   };
 
+  const getAssignment = (role: RoleType, day: number, type: AssignmentType) => {
+    return assignmentMap.get(`${day}-${type}-${role}`);
+  };
+
   const handleCellClick = (role: RoleType, day: number, type: AssignmentType) => {
-    const assignment = assignmentMap.get(`${day}-${type}`);
+    const assignment = getAssignment(role, day, type);
     const roleParticipants = participants.filter((p) => p.role === role);
 
     const submitted: ParticipantWithSubmission[] = [];
@@ -143,83 +174,94 @@ export function ProgressMatrix({ data, participants, assignments, submissions }:
     });
   };
 
+  // Calculate week stats
+  const weekStats = useMemo(() => {
+    return WEEKS.map(week => {
+      let totalCells = 0;
+      let completedCells = 0;
+
+      week.days.forEach(day => {
+        ROLES.forEach(role => {
+          const cell = getCell(role, day, 'in_class');
+          if (cell && cell.total > 0) {
+            totalCells++;
+            if (cell.completion_pct >= 80) completedCells++;
+          }
+        });
+      });
+
+      return {
+        ...week,
+        completionRate: totalCells > 0 ? Math.round((completedCells / totalCells) * 100) : 0,
+      };
+    });
+  }, [data]);
+
   // Export to PDF (using print)
   const handleExportPDF = () => {
-    const printContent = document.getElementById('progress-matrix-print');
-    if (printContent) {
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Progress Matrix - AI Academy</title>
-              <style>
-                body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-                th { background: #f5f5f5; }
-                .header { margin-bottom: 20px; }
-                .header h1 { margin: 0; font-size: 24px; }
-                .header p { margin: 5px 0 0; color: #666; }
-                .legend { display: flex; gap: 20px; margin-top: 20px; justify-content: center; }
-                .legend-item { display: flex; align-items: center; gap: 5px; }
-                .legend-color { width: 16px; height: 16px; border-radius: 4px; }
-                .bg-0 { background: #e5e5e5; }
-                .bg-red { background: rgba(239, 68, 68, 0.7); color: white; }
-                .bg-yellow { background: rgba(234, 179, 8, 0.7); color: white; }
-                .bg-green { background: rgba(34, 197, 94, 0.7); color: white; }
-                @media print {
-                  body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-                }
-              </style>
-            </head>
-            <body>
-              <div class="header">
-                <h1>Progress Matrix - AI Academy</h1>
-                <p>Generated: ${format(new Date(), 'MMMM d, yyyy HH:mm')}</p>
-              </div>
-              <table>
-                <thead>
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Progress Matrix - AI Academy - ${currentWeek.label}</title>
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+              th { background: #f5f5f5; }
+              .header { margin-bottom: 20px; }
+              .header h1 { margin: 0; font-size: 24px; }
+              .header p { margin: 5px 0 0; color: #666; }
+              .legend { display: flex; gap: 20px; margin-top: 20px; justify-content: center; }
+              .legend-item { display: flex; align-items: center; gap: 5px; }
+              .legend-color { width: 16px; height: 16px; border-radius: 4px; }
+              .bg-0 { background: #e5e5e5; }
+              .bg-red { background: rgba(239, 68, 68, 0.7); color: white; }
+              .bg-yellow { background: rgba(234, 179, 8, 0.7); color: white; }
+              .bg-green { background: rgba(34, 197, 94, 0.7); color: white; }
+              @media print {
+                body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>Progress Matrix - AI Academy - ${currentWeek.label}</h1>
+              <p>Generated: ${format(new Date(), 'MMMM d, yyyy HH:mm')}</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  ${currentWeek.days.map((day) => `<th>Day ${day}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${ROLES.map((role) => `
                   <tr>
-                    <th>Role</th>
-                    ${DAYS.map((day) => `<th colspan="2">Day ${day}</th>`).join('')}
+                    <td><strong>${role}</strong></td>
+                    ${currentWeek.days.map((day) => {
+                      const cell = getCell(role, day, 'in_class');
+                      const pct = cell?.completion_pct ?? 0;
+                      const bgClass = pct === 0 ? 'bg-0' : pct < 50 ? 'bg-red' : pct < 80 ? 'bg-yellow' : 'bg-green';
+                      return `<td class="${bgClass}">${pct}%</td>`;
+                    }).join('')}
                   </tr>
-                  <tr>
-                    <th></th>
-                    ${DAYS.map(() => '<th>IC</th><th>HW</th>').join('')}
-                  </tr>
-                </thead>
-                <tbody>
-                  ${ROLES.map((role) => `
-                    <tr>
-                      <td><strong>${role}</strong></td>
-                      ${DAYS.map((day) =>
-                        TYPES.map((type) => {
-                          if ((day === 4 || day === 5) && type === 'homework') {
-                            return '<td>-</td>';
-                          }
-                          const cell = getCell(role, day, type);
-                          const pct = cell?.completion_pct ?? 0;
-                          const bgClass = pct === 0 ? 'bg-0' : pct < 50 ? 'bg-red' : pct < 80 ? 'bg-yellow' : 'bg-green';
-                          return `<td class="${bgClass}">${pct}%</td>`;
-                        }).join('')
-                      ).join('')}
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-              <div class="legend">
-                <div class="legend-item"><div class="legend-color bg-0"></div> 0%</div>
-                <div class="legend-item"><div class="legend-color bg-red"></div> &lt;50%</div>
-                <div class="legend-item"><div class="legend-color bg-yellow"></div> 50-80%</div>
-                <div class="legend-item"><div class="legend-color bg-green"></div> &gt;80%</div>
-              </div>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
-      }
+                `).join('')}
+              </tbody>
+            </table>
+            <div class="legend">
+              <div class="legend-item"><div class="legend-color bg-0"></div> 0%</div>
+              <div class="legend-item"><div class="legend-color bg-red"></div> &lt;50%</div>
+              <div class="legend-item"><div class="legend-color bg-yellow"></div> 50-80%</div>
+              <div class="legend-item"><div class="legend-color bg-green"></div> &gt;80%</div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
     }
   };
 
@@ -265,36 +307,75 @@ export function ProgressMatrix({ data, participants, assignments, submissions }:
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
           <CardTitle className="flex items-center gap-2">
             <Grid3X3 className="h-5 w-5 text-[#0062FF]" />
             Progress Matrix
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={handleExportPDF}>
-            <FileText className="mr-2 h-4 w-4" />
-            Export PDF
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+              <SelectTrigger className="w-[180px]">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Select week" />
+              </SelectTrigger>
+              <SelectContent>
+                {WEEKS.map((week) => (
+                  <SelectItem key={week.week} value={week.week.toString()}>
+                    {week.label}: {week.sublabel}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={handleExportPDF}>
+              <FileText className="mr-2 h-4 w-4" />
+              Export PDF
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
+          {/* Week Summary Cards */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            {weekStats.map((week) => (
+              <button
+                key={week.week}
+                onClick={() => setSelectedWeek(week.week.toString())}
+                className={`p-4 rounded-lg border-2 text-left transition-all ${
+                  selectedWeek === week.week.toString()
+                    ? 'border-[#0062FF] bg-[#0062FF]/5'
+                    : 'border-border hover:border-[#0062FF]/50'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <Badge className={week.color}>{week.label}</Badge>
+                  <span className={`text-lg font-bold ${
+                    week.completionRate >= 80 ? 'text-green-500' :
+                    week.completionRate >= 50 ? 'text-yellow-500' : 'text-red-500'
+                  }`}>
+                    {week.completionRate}%
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">{week.sublabel}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Days {week.days[0]}-{week.days[week.days.length - 1]}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          {/* Matrix Table */}
           <div className="overflow-x-auto" id="progress-matrix-print">
             <TooltipProvider>
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <th className="p-2 text-left font-medium text-muted-foreground">Role</th>
-                    {DAYS.map((day) => (
-                      <th key={day} colSpan={2} className="p-2 text-center font-medium">
-                        Day {day}
-                      </th>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th className="p-2"></th>
-                    {DAYS.map((day) => (
-                      <th key={`${day}-headers`} colSpan={2} className="p-0">
-                        <div className="flex">
-                          <span className="flex-1 p-1 text-center text-xs text-muted-foreground">IC</span>
-                          <span className="flex-1 p-1 text-center text-xs text-muted-foreground">HW</span>
+                    <th className="p-2 text-left font-medium text-muted-foreground sticky left-0 bg-background z-10">
+                      Role
+                    </th>
+                    {currentWeek.days.map((day) => (
+                      <th key={day} className="p-2 text-center font-medium min-w-[80px]">
+                        <div className="flex flex-col items-center">
+                          <span className="text-xs text-muted-foreground">Day</span>
+                          <span className="text-lg">{day}</span>
                         </div>
                       </th>
                     ))}
@@ -303,64 +384,57 @@ export function ProgressMatrix({ data, participants, assignments, submissions }:
                 <tbody>
                   {ROLES.map((role) => (
                     <tr key={role} className="border-t border-border">
-                      <td className="p-2">
+                      <td className="p-2 sticky left-0 bg-background z-10">
                         <Badge variant="outline">{role}</Badge>
                       </td>
-                      {DAYS.map((day) => (
-                        <td key={`${day}-cells`} colSpan={2} className="p-0">
-                          <div className="flex">
-                            {TYPES.map((type) => {
-                              const cell = getCell(role, day, type);
-                              const pct = cell?.completion_pct ?? 0;
-                              const submitted = cell?.submitted ?? 0;
-                              const total = cell?.total ?? 0;
+                      {currentWeek.days.map((day) => {
+                        const cell = getCell(role, day, 'in_class');
+                        const assignment = getAssignment(role, day, 'in_class');
+                        const pct = cell?.completion_pct ?? 0;
+                        const submitted = cell?.submitted ?? 0;
+                        const total = cell?.total ?? 0;
 
-                              // Skip homework for day 4 and 5
-                              if ((day === 4 || day === 5) && type === 'homework') {
-                                return (
-                                  <div
-                                    key={`${day}-${type}`}
-                                    className="flex-1 p-1"
-                                  >
-                                    <div className="w-full h-8 bg-muted/30 rounded flex items-center justify-center text-xs text-muted-foreground">
-                                      -
-                                    </div>
-                                  </div>
-                                );
-                              }
+                        // Check if this role has an assignment for this day
+                        const hasAssignment = !!assignment;
 
-                              return (
-                                <div
-                                  key={`${day}-${type}`}
-                                  className="flex-1 p-1"
+                        if (!hasAssignment) {
+                          return (
+                            <td key={day} className="p-1">
+                              <div className="w-full h-12 bg-muted/30 rounded flex items-center justify-center text-xs text-muted-foreground">
+                                -
+                              </div>
+                            </td>
+                          );
+                        }
+
+                        return (
+                          <td key={day} className="p-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => handleCellClick(role, day, 'in_class')}
+                                  className={`w-full h-12 rounded flex flex-col items-center justify-center text-xs font-medium cursor-pointer transition-all hover:scale-105 hover:ring-2 hover:ring-[#0062FF] ${getCompletionColor(pct)} ${getCompletionTextColor(pct)}`}
                                 >
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button
-                                        onClick={() => handleCellClick(role, day, type)}
-                                        className={`w-full h-8 rounded flex items-center justify-center text-xs font-medium cursor-pointer transition-all hover:scale-105 hover:ring-2 hover:ring-[#0062FF] ${getCompletionColor(pct)} ${getCompletionTextColor(pct)}`}
-                                      >
-                                        {pct}%
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="font-medium">
-                                        {role} - Day {day} {type === 'in_class' ? 'In-Class' : 'Homework'}
-                                      </p>
-                                      <p className="text-sm text-muted-foreground">
-                                        {submitted} / {total} submitted ({pct}%)
-                                      </p>
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        Click for details
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </td>
-                      ))}
+                                  <span className="text-lg font-bold">{pct}%</span>
+                                  <span className="text-[10px] opacity-80">{submitted}/{total}</span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="font-medium">
+                                  {role} - Day {day}
+                                </p>
+                                <p className="text-sm font-normal">{assignment?.title}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {submitted} / {total} submitted ({pct}%)
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Click for details
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
@@ -396,8 +470,7 @@ export function ProgressMatrix({ data, participants, assignments, submissions }:
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-[#0062FF]" />
-              {drillDown?.role} - Day {drillDown?.day}{' '}
-              {drillDown?.type === 'in_class' ? 'In-Class' : 'Homework'}
+              {drillDown?.role} - Day {drillDown?.day}
             </DialogTitle>
             <DialogDescription>
               {drillDown?.assignment?.title || 'Assignment details'}
