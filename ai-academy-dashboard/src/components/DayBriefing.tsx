@@ -531,22 +531,49 @@ export function DayBriefing({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1">
-              <span className="text-2xl">🤖</span>
-              <span className="text-sm">AI Tutor</span>
+            <a
+              href="https://m365.cloud.microsoft:443/chat/?titleId=T_66eca5a0-e80c-4b23-e7ae-dcdb86d8ad3f&source=embedded-builder"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full"
+            >
+              <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1 w-full hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-950 dark:hover:border-blue-700">
+                <span className="text-2xl">🤖</span>
+                <span className="text-sm">AI Tutor</span>
+              </Button>
+            </a>
+            <Link href={`/mission/day/${missionDay.day}#deliverables`} className="w-full">
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1 w-full hover:bg-green-50 hover:border-green-300 dark:hover:bg-green-950 dark:hover:border-green-700"
+                onClick={() => {
+                  // Scroll to deliverables and switch tab
+                  const tabTrigger = document.querySelector('[value="deliverables"]') as HTMLButtonElement;
+                  tabTrigger?.click();
+                }}
+              >
+                <span className="text-2xl">📝</span>
+                <span className="text-sm">Submit Work</span>
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex flex-col items-center gap-1 hover:bg-purple-50 hover:border-purple-300 dark:hover:bg-purple-950 dark:hover:border-purple-700"
+              onClick={() => {
+                // Switch to resources tab
+                const tabTrigger = document.querySelector('[value="resources"]') as HTMLButtonElement;
+                tabTrigger?.click();
+              }}
+            >
+              <span className="text-2xl">📚</span>
+              <span className="text-sm">Resources</span>
             </Button>
-            <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1">
-              <span className="text-2xl">📝</span>
-              <span className="text-sm">Submit Work</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1">
-              <span className="text-2xl">👥</span>
-              <span className="text-sm">Team Chat</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1">
-              <span className="text-2xl">❓</span>
-              <span className="text-sm">Get Help</span>
-            </Button>
+            <Link href="/help" className="w-full">
+              <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1 w-full hover:bg-amber-50 hover:border-amber-300 dark:hover:bg-amber-950 dark:hover:border-amber-700">
+                <span className="text-2xl">❓</span>
+                <span className="text-sm">Get Help</span>
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
