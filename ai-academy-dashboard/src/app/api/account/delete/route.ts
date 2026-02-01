@@ -3,7 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { createServiceSupabaseClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 
-export async function DELETE(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function DELETE(_request: NextRequest) {
   try {
     // Get authenticated user
     const supabase = await createServerSupabaseClient();

@@ -26,7 +26,8 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+const [successMessage, _setSuccessMessage] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const router = useRouter();
