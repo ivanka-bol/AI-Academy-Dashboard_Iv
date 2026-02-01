@@ -51,34 +51,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = getSupabaseClient();
 
-  // Fetch participant by multiple identifiers (email, auth_user_id, or github_username)
+  // Fetch participant by multiple identifiers (email, github_username, or auth_user_id)
   const fetchParticipant = async (authUser: User) => {
-    // Try to find by auth_user_id first (most reliable for email-registered users)
-    let { data } = await supabase
-      .from('participants')
-      .select('*')
-      .eq('auth_user_id', authUser.id)
-      .single();
+    let data = null;
 
-    // If not found, try by email
-    if (!data && authUser.email) {
+    // Try to find by email first (most reliable, always exists)
+    if (authUser.email) {
       const result = await supabase
         .from('participants')
         .select('*')
         .eq('email', authUser.email)
         .single();
       data = result.data;
-
-      // Link auth_user_id if found by email (for users who registered before this update)
-      if (data && !data.auth_user_id) {
-        await supabase
-          .from('participants')
-          .update({ auth_user_id: authUser.id })
-          .eq('id', data.id);
-      }
     }
 
-    // If still not found, try by github_username (for GitHub OAuth users)
+    // If not found by email, try by github_username (for GitHub OAuth users)
     if (!data && authUser.user_metadata?.user_name) {
       const result = await supabase
         .from('participants')
@@ -86,13 +73,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('github_username', authUser.user_metadata.user_name)
         .single();
       data = result.data;
+    }
 
-      // Link auth_user_id if found by github_username
-      if (data && !data.auth_user_id) {
+    // Try auth_user_id if column exists (graceful fallback)
+    if (!data) {
+      try {
+        const result = await supabase
+          .from('participants')
+          .select('*')
+          .eq('auth_user_id', authUser.id)
+          .single();
+        data = result.data;
+      } catch {
+        // auth_user_id column might not exist yet - ignore error
+      }
+    }
+
+    // Link auth_user_id if found and not already linked (for migration)
+    if (data && !data.auth_user_id) {
+      try {
         await supabase
           .from('participants')
           .update({ auth_user_id: authUser.id })
           .eq('id', data.id);
+      } catch {
+        // auth_user_id column might not exist yet - ignore error
       }
     }
 

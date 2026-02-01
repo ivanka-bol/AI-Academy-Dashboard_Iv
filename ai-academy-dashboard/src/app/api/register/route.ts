@@ -77,22 +77,28 @@ export async function POST(request: NextRequest) {
       avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=random&size=200`;
     }
 
+    // Build insert object - only include fields that exist in current schema
+    // nickname and auth_user_id may not exist if migration hasn't been run
+    const insertData: Record<string, unknown> = {
+      github_username: github_username || null,
+      name,
+      email,
+      role,
+      team,
+      stream,
+      avatar_url: avatarUrl,
+      repo_url: github_username ? `https://github.com/${github_username}/ai-academy-2026` : null,
+      status: 'approved',  // Immediate access - no admin approval needed
+    };
+
+    // Add new fields if provided (they may fail if columns don't exist yet)
+    if (nickname) insertData.nickname = nickname;
+    if (auth_user_id) insertData.auth_user_id = auth_user_id;
+
     // Insert participant
     const { data: participant, error } = await supabase
       .from('participants')
-      .insert({
-        github_username: github_username || null,
-        name,
-        nickname,
-        email,
-        role,
-        team,
-        stream,
-        avatar_url: avatarUrl,
-        repo_url: github_username ? `https://github.com/${github_username}/ai-academy-2026` : null,
-        auth_user_id: auth_user_id || null,
-        status: 'approved',  // Immediate access - no admin approval needed
-      })
+      .insert(insertData)
       .select()
       .single();
 
