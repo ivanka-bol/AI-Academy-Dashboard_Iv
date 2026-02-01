@@ -16,15 +16,17 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  ShieldCheck,
-  KeyRound,
+  LogIn,
+  UserPlus,
 } from 'lucide-react';
 
 function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -32,9 +34,8 @@ function LoginForm() {
 
   const error = searchParams.get('error');
   const message = searchParams.get('message');
-  const isAdminLogin = searchParams.get('admin') === 'true';
 
-  const [activeTab, setActiveTab] = useState(isAdminLogin ? 'admin' : 'github');
+  const [activeTab, setActiveTab] = useState('signin');
 
   // Redirect if already logged in
   useEffect(() => {
@@ -50,6 +51,58 @@ function LoginForm() {
       }
     }
   }, [user, isAdmin, userStatus, router]);
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+
+    setIsLoading(true);
+    setLoginError(null);
+
+    const { error } = await signInWithEmail(email, password);
+
+    if (error) {
+      setLoginError(error.message);
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+
+    if (password !== confirmPassword) {
+      setLoginError('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 8) {
+      setLoginError('Password must be at least 8 characters');
+      return;
+    }
+
+    setIsLoading(true);
+    setLoginError(null);
+
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setLoginError(error.message);
+      setIsLoading(false);
+    } else {
+      setSuccessMessage('Account created! Check your email to confirm, then complete your profile.');
+      setIsLoading(false);
+      // After email confirmation, user will be redirected to onboarding
+    }
+  };
 
   const handleGitHubLogin = async () => {
     setIsLoading(true);
@@ -71,22 +124,6 @@ function LoginForm() {
     }
   };
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) return;
-
-    setIsLoading(true);
-    setLoginError(null);
-
-    const { error } = await signInWithEmail(email, password);
-
-    if (error) {
-      setLoginError(error.message);
-      setIsLoading(false);
-    }
-    // Success will be handled by auth state change
-  };
-
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
@@ -95,9 +132,9 @@ function LoginForm() {
             <span className="text-2xl font-bold text-white">AI</span>
           </div>
         </div>
-        <CardTitle className="text-2xl">Sign In</CardTitle>
+        <CardTitle className="text-2xl">AI Academy</CardTitle>
         <CardDescription>
-          Sign in to access the dashboard
+          Sign in or create an account to continue
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -112,62 +149,36 @@ function LoginForm() {
           </Alert>
         )}
 
-        {message && (
+        {(message || successMessage) && (
           <Alert className="border-green-500/50 bg-green-500/10">
             <CheckCircle className="h-4 w-4 text-green-500" />
             <AlertDescription className="text-green-600 dark:text-green-400">
-              {message}
+              {successMessage || message}
             </AlertDescription>
           </Alert>
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="github" className="flex items-center gap-2">
-              <Github className="h-4 w-4" />
-              User
+            <TabsTrigger value="signin" className="flex items-center gap-2">
+              <LogIn className="h-4 w-4" />
+              Sign In
             </TabsTrigger>
-            <TabsTrigger value="admin" className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" />
-              Admin
+            <TabsTrigger value="signup" className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              Sign Up
             </TabsTrigger>
           </TabsList>
 
-          {/* GitHub Login */}
-          <TabsContent value="github" className="space-y-4 mt-4">
-            <Button
-              onClick={handleGitHubLogin}
-              disabled={isLoading}
-              className="w-full bg-[#24292e] hover:bg-[#1b1f23] text-white"
-              size="lg"
-            >
-              {isLoading ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <Github className="mr-2 h-5 w-5" />
-              )}
-              Sign in with GitHub
-            </Button>
-
-            <div className="text-center text-sm text-muted-foreground">
-              <p>For registered users</p>
-              <ul className="mt-2 space-y-1 text-xs">
-                <li>• Automatic avatar assignment</li>
-                <li>• GitHub username verification</li>
-                <li>• Access granted after admin approval</li>
-              </ul>
-            </div>
-          </TabsContent>
-
-          {/* Admin Login */}
-          <TabsContent value="admin" className="space-y-4 mt-4">
-            <form onSubmit={handleEmailLogin} className="space-y-4">
+          {/* Sign In */}
+          <TabsContent value="signin" className="space-y-4 mt-4">
+            <form onSubmit={handleEmailSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="signin-email">Email</Label>
                 <Input
-                  id="email"
+                  id="signin-email"
                   type="email"
-                  placeholder="admin@example.com"
+                  placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -175,9 +186,9 @@ function LoginForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="signin-password">Password</Label>
                 <Input
-                  id="password"
+                  id="signin-password"
                   type="password"
                   placeholder="••••••••"
                   value={password}
@@ -195,11 +206,102 @@ function LoginForm() {
                 {isLoading ? (
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 ) : (
-                  <KeyRound className="mr-2 h-5 w-5" />
+                  <LogIn className="mr-2 h-5 w-5" />
                 )}
                 Sign In
               </Button>
             </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleGitHubLogin}
+              disabled={isLoading}
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              {isLoading ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <Github className="mr-2 h-5 w-5" />
+              )}
+              Continue with GitHub
+            </Button>
+          </TabsContent>
+
+          {/* Sign Up */}
+          <TabsContent value="signup" className="space-y-4 mt-4">
+            <form onSubmit={handleEmailSignUp} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="signup-email">Email</Label>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signup-password">Password</Label>
+                <Input
+                  id="signup-password"
+                  type="password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="Repeat password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#0062FF] hover:bg-[#0052D9]"
+                size="lg"
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <UserPlus className="mr-2 h-5 w-5" />
+                )}
+                Create Account
+              </Button>
+            </form>
+
+            <div className="text-center text-sm text-muted-foreground">
+              <p>After creating your account:</p>
+              <ul className="mt-2 space-y-1 text-xs">
+                <li>• Confirm your email</li>
+                <li>• Complete your profile</li>
+                <li>• Start learning!</li>
+              </ul>
+            </div>
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -75,10 +75,10 @@ export function MyDashboardClient({
   >([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load saved username from localStorage
+  // Load saved user id from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('my-dashboard-username');
-    if (saved && participants.some((p) => p.github_username === saved)) {
+    const saved = localStorage.getItem('my-dashboard-user-id');
+    if (saved && participants.some((p) => p.id === saved)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedUsername(saved);
     }
@@ -88,14 +88,14 @@ export function MyDashboardClient({
   useEffect(() => {
     if (!selectedUsername) return;
 
-    localStorage.setItem('my-dashboard-username', selectedUsername);
+    localStorage.setItem('my-dashboard-user-id', selectedUsername);
 
     const fetchUserData = async () => {
       setIsLoading(true);
       const supabase = getSupabaseClient();
 
       const participant = participants.find(
-        (p) => p.github_username === selectedUsername
+        (p) => p.id === selectedUsername
       );
       if (!participant) return;
 
@@ -126,11 +126,11 @@ export function MyDashboardClient({
   }, [selectedUsername, participants]);
 
   const currentUser = participants.find(
-    (p) => p.github_username === selectedUsername
+    (p) => p.id === selectedUsername
   );
-  const userLeaderboard = leaderboard.find(
-    (l) => l.github_username === selectedUsername
-  );
+  const userLeaderboard = currentUser
+    ? leaderboard.find((l) => l.github_username === currentUser.github_username)
+    : undefined;
   const userTeamProgress = teamProgress.find(
     (t) => t.team === currentUser?.team
   );
@@ -222,8 +222,8 @@ export function MyDashboardClient({
             </SelectTrigger>
             <SelectContent>
               {participants.map((p) => (
-                <SelectItem key={p.github_username} value={p.github_username}>
-                  {p.name} (@{p.github_username})
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name} (@{p.nickname || p.github_username || 'no-username'})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -249,7 +249,7 @@ export function MyDashboardClient({
             className="mt-4"
             onClick={() => {
               setSelectedUsername('');
-              localStorage.removeItem('my-dashboard-username');
+              localStorage.removeItem('my-dashboard-user-id');
             }}
           >
             Select another user
@@ -269,13 +269,13 @@ export function MyDashboardClient({
           </SelectTrigger>
           <SelectContent>
             {participants.map((p) => (
-              <SelectItem key={p.github_username} value={p.github_username}>
-                {p.name} (@{p.github_username})
+              <SelectItem key={p.id} value={p.id}>
+                {p.name} (@{p.nickname || p.github_username || 'no-username'})
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Link href={`/participant/${selectedUsername}`}>
+        <Link href={`/participant/${currentUser?.nickname || selectedUsername}`}>
           <Button variant="outline" size="sm">
             Public Profile
             <ExternalLink className="ml-2 h-4 w-4" />
@@ -310,7 +310,7 @@ export function MyDashboardClient({
                   #{userLeaderboard.rank}
                 </Badge>
               </div>
-              <p className="text-muted-foreground">@{currentUser.github_username}</p>
+              <p className="text-muted-foreground">@{currentUser.nickname || currentUser.github_username || 'no-username'}</p>
               <div className="flex items-center gap-2 mt-2">
                 <Badge variant="outline">{currentUser.role}</Badge>
                 <Badge variant="secondary">Team {currentUser.team}</Badge>

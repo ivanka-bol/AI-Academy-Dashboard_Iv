@@ -51,16 +51,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = getSupabaseClient();
 
-  const fetchParticipant = async (githubUsername: string) => {
-    const { data } = await supabase
+  // Fetch participant by multiple identifiers (email, auth_user_id, or github_username)
+  const fetchParticipant = async (authUser: User) => {
+    // Try to find by auth_user_id first (most reliable for email-registered users)
+    let { data } = await supabase
       .from('participants')
       .select('*')
-      .eq('github_username', githubUsername)
+      .eq('auth_user_id', authUser.id)
       .single();
+
+    // If not found, try by email
+    if (!data && authUser.email) {
+      const result = await supabase
+        .from('participants')
+        .select('*')
+        .eq('email', authUser.email)
+        .single();
+      data = result.data;
+
+      // Link auth_user_id if found by email (for users who registered before this update)
+      if (data && !data.auth_user_id) {
+        await supabase
+          .from('participants')
+          .update({ auth_user_id: authUser.id })
+          .eq('id', data.id);
+      }
+    }
+
+    // If still not found, try by github_username (for GitHub OAuth users)
+    if (!data && authUser.user_metadata?.user_name) {
+      const result = await supabase
+        .from('participants')
+        .select('*')
+        .eq('github_username', authUser.user_metadata.user_name)
+        .single();
+      data = result.data;
+
+      // Link auth_user_id if found by github_username
+      if (data && !data.auth_user_id) {
+        await supabase
+          .from('participants')
+          .update({ auth_user_id: authUser.id })
+          .eq('id', data.id);
+      }
+    }
 
     if (data) {
       setParticipant(data as Participant);
-      setUserStatus((data as Participant).status || 'pending');
+      // No approval needed - all registered users are approved
+      setUserStatus('approved');
       setIsActualAdmin((data as Participant).is_admin || false);
     } else {
       setParticipant(null);
@@ -87,11 +126,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshParticipant = async () => {
-    if (user?.user_metadata?.user_name) {
-      await fetchParticipant(user.user_metadata.user_name);
-    } else if (user?.id) {
-      // For email-authenticated users, check admin_users table
-      await checkAdminUser(user.id);
+    if (user) {
+      await fetchParticipant(user);
     }
   };
 
@@ -104,14 +140,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(initialSession);
         setUser(initialSession.user);
 
-        // Check if it's a GitHub user
-        const githubUsername = initialSession.user.user_metadata?.user_name;
-        if (githubUsername) {
-          await fetchParticipant(githubUsername);
-        } else {
-          // Email user - check admin_users table
-          await checkAdminUser(initialSession.user.id);
-        }
+        // Fetch participant (works for both GitHub and email users)
+        await fetchParticipant(initialSession.user);
+
+        // Also check admin_users table for admin status
+        await checkAdminUser(initialSession.user.id);
       }
 
       setIsLoading(false);
@@ -126,13 +159,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(newSession?.user ?? null);
 
         if (newSession?.user) {
-          const githubUsername = newSession.user.user_metadata?.user_name;
-          if (githubUsername) {
-            await fetchParticipant(githubUsername);
-          } else {
-            // Email user - check admin_users table
-            await checkAdminUser(newSession.user.id);
-          }
+          await fetchParticipant(newSession.user);
+          await checkAdminUser(newSession.user.id);
         } else {
           setParticipant(null);
           setIsActualAdmin(false);

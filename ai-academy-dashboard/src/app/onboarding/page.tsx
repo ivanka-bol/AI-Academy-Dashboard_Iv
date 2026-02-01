@@ -1,16 +1,12 @@
 'use client';
 
 import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 
 function OnboardingContent() {
-  const searchParams = useSearchParams();
-  const fromGitHub = searchParams.get('from') === 'github';
-
-  return <OnboardingWizard fromGitHub={fromGitHub} />;
+  return <OnboardingWizard />;
 }
 
 function OnboardingSkeleton() {

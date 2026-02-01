@@ -14,14 +14,16 @@ export type UserStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Participant {
   id: string;
-  github_username: string;
+  github_username: string | null;  // Optional - can connect GitHub later
   name: string;
+  nickname: string;  // Display name for collaboration
   email: string;
   role: RoleType;
   team: TeamType;
   stream: StreamType;
   avatar_url: string | null;
   repo_url: string | null;
+  auth_user_id: string | null;  // Link to Supabase auth user
   status: UserStatus;
   is_admin: boolean;
   email_notifications: boolean;

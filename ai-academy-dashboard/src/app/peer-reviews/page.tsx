@@ -182,8 +182,8 @@ export default function PeerReviewsPage() {
             </SelectTrigger>
             <SelectContent>
               {participants.map((p) => (
-                <SelectItem key={p.github_username} value={p.github_username}>
-                  {p.name} (@{p.github_username})
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name} (@{p.nickname || p.github_username || 'no-username'})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -212,7 +212,7 @@ export default function PeerReviewsPage() {
           </SelectTrigger>
           <SelectContent>
             {participants.map((p) => (
-              <SelectItem key={p.github_username} value={p.github_username}>
+              <SelectItem key={p.id} value={p.id}>
                 {p.name}
               </SelectItem>
             ))}

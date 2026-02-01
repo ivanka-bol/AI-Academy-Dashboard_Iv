@@ -90,7 +90,7 @@ export function CommandPalette() {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from('participants')
-        .select('id, name, github_username, avatar_url, role, team')
+        .select('id, name, nickname, github_username, avatar_url, role, team')
         .order('name');
 
       if (!error && data) {
@@ -112,8 +112,8 @@ export function CommandPalette() {
     runCommand(() => router.push(href));
   };
 
-  const handleParticipantSelect = (username: string) => {
-    runCommand(() => router.push(`/participant/${username}`));
+  const handleParticipantSelect = (identifier: string) => {
+    runCommand(() => router.push(`/participant/${identifier}`));
   };
 
   const handleQuickAction = (action: string) => {
@@ -182,8 +182,8 @@ export function CommandPalette() {
               {participants.slice(0, 10).map((participant) => (
                 <CommandItem
                   key={participant.id}
-                  value={`${participant.name} ${participant.github_username} ${participant.role} ${participant.team}`}
-                  onSelect={() => handleParticipantSelect(participant.github_username)}
+                  value={`${participant.name} ${participant.nickname || ''} ${participant.github_username || ''} ${participant.role} ${participant.team}`}
+                  onSelect={() => handleParticipantSelect(participant.nickname || participant.id)}
                   className="flex items-center gap-3"
                 >
                   <Avatar className="h-6 w-6">
@@ -200,7 +200,7 @@ export function CommandPalette() {
                   <div className="flex-1 min-w-0">
                     <span className="font-medium">{participant.name}</span>
                     <span className="text-muted-foreground ml-2">
-                      @{participant.github_username}
+                      @{participant.nickname || participant.github_username || 'no-username'}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">

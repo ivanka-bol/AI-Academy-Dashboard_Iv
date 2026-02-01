@@ -42,25 +42,67 @@ export const streamSchema = z.enum(VALID_STREAMS, {
   message: 'Invalid stream',
 });
 
+// GitHub username schema - optional now
+export const githubUsernameSchema = z
+  .string()
+  .max(39, 'GitHub username too long')
+  .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/, 'Invalid GitHub username format')
+  .optional()
+  .nullable();
+
+// Nickname schema for collaboration
+export const nicknameSchema = z
+  .string()
+  .min(2, 'Nickname must be at least 2 characters')
+  .max(30, 'Nickname too long')
+  .regex(/^[a-zA-Z0-9_-]+$/, 'Nickname can only contain letters, numbers, underscores and hyphens')
+  .transform(sanitizeString);
+
 export const registerSchema = z.object({
-  github_username: z
-    .string()
-    .min(1, 'GitHub username is required')
-    .max(39, 'GitHub username too long')
-    .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/, 'Invalid GitHub username format'),
+  github_username: githubUsernameSchema,
   name: z
     .string()
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name too long')
     .transform(sanitizeString),
+  nickname: nicknameSchema,
   email: emailSchema,
   role: roleSchema,
   team: teamSchema,
   stream: streamSchema,
   avatar_url: z.string().url().optional().nullable(),
+  auth_user_id: z.string().uuid().optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+// Sign up schema for email/password registration
+export const signUpSchema = z.object({
+  email: emailSchema,
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(72, 'Password too long'),
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name too long')
+    .transform(sanitizeString),
+  nickname: nicknameSchema,
+});
+
+export type SignUpInput = z.infer<typeof signUpSchema>;
+
+// Connect GitHub schema
+export const connectGitHubSchema = z.object({
+  github_username: z
+    .string()
+    .min(1, 'GitHub username is required')
+    .max(39, 'GitHub username too long')
+    .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/, 'Invalid GitHub username format'),
+});
+
+export type ConnectGitHubInput = z.infer<typeof connectGitHubSchema>;
 
 // ============================================================================
 // Review Schemas

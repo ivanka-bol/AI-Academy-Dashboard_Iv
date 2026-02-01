@@ -229,7 +229,7 @@ export function SubmissionComments({
 
   const filteredMentions = participants.filter(
     (p) =>
-      p.github_username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+      (p.nickname || p.github_username || '').toLowerCase().includes(mentionQuery.toLowerCase()) ||
       p.name.toLowerCase().includes(mentionQuery.toLowerCase())
   );
 
@@ -410,7 +410,7 @@ export function SubmissionComments({
                         <button
                           key={p.id}
                           className="flex items-center gap-2 w-full p-2 hover:bg-accent rounded text-left"
-                          onClick={() => handleMentionSelect(p.github_username)}
+                          onClick={() => handleMentionSelect(p.nickname || p.github_username || p.id)}
                         >
                           <Avatar className="h-6 w-6">
                             <AvatarImage src={p.avatar_url ?? undefined} />
@@ -421,7 +421,7 @@ export function SubmissionComments({
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{p.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              @{p.github_username}
+                              @{p.nickname || p.github_username || 'no-username'}
                             </p>
                           </div>
                         </button>
@@ -496,7 +496,7 @@ export function SubmissionComments({
                   <button
                     key={p.id}
                     className="flex items-center gap-2 w-full p-2 hover:bg-accent rounded text-left"
-                    onClick={() => handleMentionSelect(p.github_username)}
+                    onClick={() => handleMentionSelect(p.nickname || p.github_username || p.id)}
                   >
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={p.avatar_url ?? undefined} />
@@ -507,7 +507,7 @@ export function SubmissionComments({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{p.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        @{p.github_username}
+                        @{p.nickname || p.github_username || 'no-username'}
                       </p>
                     </div>
                   </button>
