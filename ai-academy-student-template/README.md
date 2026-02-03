@@ -1,4 +1,4 @@
-# AI Academy 2026 - [YOUR NAME]
+# AI Academy 2026 - Ivana 
 
 > My repository for Kyndryl AI Academy
 
@@ -6,10 +6,10 @@
 
 | | |
 |---|---|
-| **Name** | [Your name] |
-| **Role** | [FDE / AI-SE / AI-PM / AI-DA / AI-DS / AI-SEC / AI-FE] |
-| **Team** | [Alpha / Beta / Gamma / Delta / Epsilon / Zeta / Eta / Theta] |
-| **Stream** | [Tech / Business] |
+| **Name** | Ivana Boldišová |
+| **Role** | AI-DS |
+| **Team** | Alpha|
+| **Stream** | Business |
 
 ## Repository Structure
 
