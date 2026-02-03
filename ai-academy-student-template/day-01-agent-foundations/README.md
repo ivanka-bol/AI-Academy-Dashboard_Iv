@@ -79,6 +79,9 @@ If agent encounters inappropriate inputs or prompts, send alert immediately for 
 
 ? do not know how or what to screenshot
 
+The link to the chat: 
+https://chatgpt.com/share/e/6981f16c-3134-8010-88c7-26093cc14168
+
 ## 📝 Reflection
 
 ### What I learned
