@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **Name** | Ivana Boldišová |
-| **Role** | AI-DS |
+| **Role** | AI-DA |
 | **Team** | Alpha|
 | **Stream** | Business |
 

@@ -6,7 +6,7 @@
 ## 🤖 My Agent
 
 **Name:** Ansible jobs summarize Agent
-**Role:** Data Scientist
+**Role:** Data Analyst
 
 ### System Prompt
 #Ansible jobs summarize Agent
